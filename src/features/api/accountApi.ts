@@ -1,6 +1,6 @@
 import {createAsyncThunk} from "@reduxjs/toolkit";
-import type {userRegister} from "../../utils/types";
-import {base_url, createToken} from "../../utils/constatnts.ts";
+import type {UserData, userRegister} from "../../utils/types";
+import {base_url, base_user, createToken, createUser} from "../../utils/constatnts.ts";
 
 export const registerUser = createAsyncThunk(
     'user/register',
@@ -26,7 +26,22 @@ export const registerUser = createAsyncThunk(
 
 export const fetchUser = createAsyncThunk(
     'user/fetch',
-    async (user: userRegister) => {
-
+    async (user:  UserData) => {
+const response = await fetch(`${base_user}/account/fetch`, {
+    method: "POST",
+    headers: {
+        "Authorization": createToken(user.firstName, user.lastName)
+    },
+    body: JSON.stringify(user)
+})
+        if (response.status === 401) {
+            throw new Error(`UUser ${user.firstName} ,${user.lastName}already Unauthorized`);
+        }
+        if (!response.ok) {
+            throw new Error(`Something went wrong`);
+        }
+        const data = await response.json();
+        const token = createUser(user.firstName, user.lastName);
+        return {user: data, token};
     }
 )
