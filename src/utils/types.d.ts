@@ -15,3 +15,8 @@ export interface userRegister extends UserData  {
     login:string;
     password: string;
 }
+
+export interface UserLogin {
+    login: string;
+    password: string;
+}
