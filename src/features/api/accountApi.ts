@@ -1,6 +1,7 @@
 import {createAsyncThunk} from "@reduxjs/toolkit";
-import type { UserLogin, userRegister} from "../../utils/types";
+import type {UserData, userRegister} from "../../utils/types";
 import {base_url, base_user, createToken} from "../../utils/constatnts.ts";
+import type {RootState} from "../../app/store.ts";
 
 export const registerUser = createAsyncThunk(
     'user/register',
@@ -26,23 +27,62 @@ export const registerUser = createAsyncThunk(
 
 export const fetchUser = createAsyncThunk(
     'user/fetch',
-    async (user: UserLogin) => {
-        const response = await fetch(`${base_user}/fetch`, {
+    async (token: string) => {
+        const response = await fetch(`${base_user}/account/login`, {
             method: "POST",
             headers: {
-                "Authorization": createToken(user.login, user.password),
-                "Content-Type": "application/json",
+                "Authorization": token,
             },
-            body: JSON.stringify(user)
+
         })
         if (response.status === 401) {
-            throw new Error(`User ${user.login}already Unauthorized`);
+            throw new Error(`User already Unauthorized`);
         }
         if (!response.ok) {
             throw new Error(`Something went wrong`);
         }
         const data = await response.json();
-        const token = createToken(user.login, user.password);
         return {user: data, token};
+    }
+)
+
+export const updateUser = createAsyncThunk<UserData, UserData, { state: RootState }>(
+    'user/update',
+    async (user, {getState}) => {
+        const response = await fetch(`${base_url}/account/user/${getState().user.login}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: getState().token,
+            },
+            body: JSON.stringify(user)
+        })
+        if (response.status === 401) {
+            throw new Error(`User already Unauthorized`);
+        }
+        if (!response.ok) {
+            throw new Error(`Something went wrong`);
+        }
+        const {firstName, lastName}= await response.json()
+        return {firstName, lastName};
+    }
+)
+export const changePassword = createAsyncThunk<string, string, { state: RootState }>(
+    'user/password',
+    async (newPassword, {getState}) => {
+        const response = await fetch(`${base_url}/account/password`, {
+            method: "PATCH",
+            headers: {
+                Authorization: getState().token,
+                'X-password': newPassword,
+            }
+        })
+        if (response.status === 401) {
+            throw new Error(`User already Unauthorized`);
+        }
+        if (!response.ok) {
+            throw new Error(`Something went wrong`);
+        }
+        return createToken(getState().user.login, newPassword);
     }
 )
